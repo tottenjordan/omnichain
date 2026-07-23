@@ -75,6 +75,20 @@ class AssemblyError(OmniChainError):
     error_type = "assembly_error"
 
 
+class OneChangePerTurnError(OmniChainError):
+    """Raised when an edit instruction bundles more than one change."""
+
+    status_code = 400
+    error_type = "one_change_per_turn"
+
+
+class ConflictError(OmniChainError):
+    """Raised when an operation is invalid for the resource's current state."""
+
+    status_code = 409
+    error_type = "conflict"
+
+
 def _error_body(error_type: str, message: str, detail: str | None) -> dict[str, object]:
     return {
         "error": {
