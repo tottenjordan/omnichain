@@ -21,4 +21,5 @@ non-obvious insights you'd otherwise rediscover the hard way.
 ## Notes by topic
 
 - [Environment & tooling gotchas](environment.md) — ffmpeg missing, WebSearch blocked, genai auth mode, Python 3.14, ASGI correlation-id middleware
+- [Interactions API shape](interactions-api.md) — real google-genai 2.14 create() body/response for Omni Flash video (docs were thin; verify live)
 <!-- Add entries as: - [Title](relative/path.md) — one-line hook -->
