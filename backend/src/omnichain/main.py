@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, cast
 from fastapi import FastAPI
 
 from omnichain import __version__
+from omnichain.api import characters as characters_router
 from omnichain.api import gcs as gcs_router
+from omnichain.api import sessions as sessions_router
 from omnichain.errors import register_exception_handlers
 from omnichain.logging_config import configure_logging, correlation_id_var
 
@@ -70,6 +72,8 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(gcs_router.router)
+    app.include_router(sessions_router.router)
+    app.include_router(characters_router.router)
 
     return app
 
