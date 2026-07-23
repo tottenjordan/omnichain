@@ -7,12 +7,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 
+from omnichain.agents.storyboard_agent import StoryboardAgent, get_storyboard_agent
 from omnichain.models.schemas import Session
 from omnichain.services.firestore_store import FirestoreStore, get_firestore_store
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
 StoreDep = Annotated[FirestoreStore, Depends(get_firestore_store)]
+StoryboardDep = Annotated[StoryboardAgent, Depends(get_storyboard_agent)]
+
+_DEFAULT_TARGET_SECONDS = 45
 
 
 class SessionCreate(BaseModel):
@@ -51,6 +55,26 @@ def get_session(session_id: str, store: StoreDep) -> Session:
 def delete_session(session_id: str, store: StoreDep) -> Response:
     store.delete_session(session_id)
     return Response(status_code=204)
+
+
+class StoryboardRequest(BaseModel):
+    target_seconds: int = _DEFAULT_TARGET_SECONDS
+
+
+@router.post("/{session_id}/storyboard", response_model=Session)
+async def generate_storyboard(
+    session_id: str,
+    req: StoryboardRequest,
+    store: StoreDep,
+    agent: StoryboardDep,
+) -> Session:
+    session = store.get_session(session_id)
+    session.shots = await agent.generate(
+        concept=session.concept,
+        style_tone=session.style_tone,
+        target_seconds=req.target_seconds,
+    )
+    return store.update_session(session)
 
 
 @router.post("/{session_id}/characters/{character_id}", response_model=Session)
