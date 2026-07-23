@@ -105,3 +105,67 @@ The runtime service account needs:
 > via the IAM Credentials API — grant `roles/iam.serviceAccountTokenCreator` on itself).
 
 > **Note:** OmniChain never falls back to Veo. All generation errors surface directly in the UI.
+
+## Architecture
+
+OmniChain runs as a **single, stateless Google Cloud Run service** organized into four layers.
+
+[![OmniChain reference architecture](imgs/architecture.png)](imgs/architecture.png)
+
+- **Client Layer** — the React/Vite SPA running in the browser. All interaction happens through calls to the FastAPI `/api` endpoints (arrow ①).
+- **Compute & Orchestration Layer** — one Cloud Run service hosting the FastAPI backend and, **in the same process**, the two Google ADK agents (arrow ②): the **Storyboard Agent** (decomposes the vision into 3–6 sub-10s shots) and the **Prompt Compiler** (rewrites each shot into a rigid 6-part *"Anchor & Inject"* prompt that defeats character decay when mixing IPs).
+- **Execution & Processing Layer** — the `google-genai` **Interactions API** driving `gemini-omni-flash-preview` for generation and conversational edits with native synced audio (arrow ③), and the **FFmpeg engine** that concatenates approved clips and ducks the master audio track.
+- **Persistence Layer** — **Firestore** for durable metadata (sessions, shots, the global character library) and **Cloud Storage (GCS)** for all binary assets (reference images, generated clips, master audio, the final cut).
+
+The numbered path traces one full render: **①** the SPA submits the vision → **②** FastAPI invokes the in-process agents → **③** compiled prompts hit the Interactions API → **④** clips and metadata are written to GCS and Firestore → **⑤** FFmpeg assembles the final cut → **⑥** a signed GCS URL is returned to the SPA for playback.
+
+### The user journey
+
+OmniChain is a **four-stage, director-style wizard**. Stages flow left-to-right; editing loops back within a stage.
+
+[![OmniChain user journey](imgs/user_journey.png)](imgs/user_journey.png)
+
+1. **The Vision** — the user supplies a concept and Style/Tone, optionally uploads a master audio track and reference images, enters a GCS bucket and browses/creates a target subfolder, and picks characters from a global library. These are merged into the vision parameters handed to the agent.
+2. **The Storyboard** — the **Storyboard Agent** slices the vision into 3–6 editable shot cards (each `< 10s`). The user can edit shot text before generating.
+3. **The Dailies** — clips generate side-by-side in a grid. This is the **generate → review → edit → approve** loop: clicking a clip opens a **Chat Panel** that refines it, enforcing **one change per turn** and chaining edits server-side via `previous_interaction_id` (no video re-upload). Each clip keeps a version history; the user approves the takes they want.
+4. **The Final Cut** — **FFmpeg** concatenates the approved clips and optionally overlays/ducks the master audio, producing a 30–60s video the user previews and downloads.
+
+**Global Error Toast System (no silent failures).** The red band spanning every stage is not a separate service — it is OmniChain's **cross-cutting error path**, and it's why nothing ever fails quietly:
+
+- **Backend:** every failure is a typed error (`GenerationError`, `GcsError`, `AgentError`, `AssemblyError`, `OneChangePerTurnError`, `ConflictError`, `NotFoundError`), and even unexpected exceptions are caught. A FastAPI handler serializes them all into one structured body: `{ "error": { "type", "message", "detail", "correlation_id" } }`. The `correlation_id` ties the response to the structured server logs.
+- **Frontend:** an `ErrorProvider` wraps the app; any thrown `ApiError` is rendered as a dismissible toast showing the error type, message, detail, and correlation id (anything unrecognized still surfaces as an `"unexpected"` toast).
+- **No fallback, by design:** when Omni Flash generation fails, OmniChain **never silently swaps in Veo** — the error surfaces in this toast (with its correlation id) so the user sees exactly what happened.
+
+## Repository layout
+
+Two levels deep, build/cache artifacts omitted:
+
+```text
+omnichain/
+├── backend/                # FastAPI service + in-process ADK agents (Python, uv)
+│   ├── src/                # omnichain package: config, errors, main, agents/, api/, services/, models/, prompts/
+│   ├── tests/              # pytest suite (mocks GCS / Firestore / google-genai / ffmpeg)
+│   ├── pyproject.toml      # dependencies + ruff / ty / pytest config
+│   └── uv.lock
+├── frontend/               # React + Vite + TypeScript SPA
+│   ├── src/                # api.ts, App.tsx, ErrorToast.tsx, stages/, oneChange.ts, types.ts
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+├── scripts/                # operational helpers
+│   ├── setup_gcp.sh        # idempotent GCP bootstrap (bucket, Firestore, APIs, service account)
+│   └── generate_banner.py  # nano-banana banner generator / editor
+├── docs/                   # project documentation
+│   ├── notes/              # build notes (live API shapes, ffmpeg filter graphs)
+│   └── plans/              # implementation plan
+├── imgs/                   # README assets (banner + diagrams)
+│   ├── omnichain_banner.png
+│   ├── architecture.png
+│   └── user_journey.png
+├── Dockerfile              # multi-stage: build SPA → serve from FastAPI (+ ffmpeg)
+├── README.md
+├── CLAUDE.md               # project instructions
+├── CODE_STANDARDS.md       # uv / ruff / ty / pytest standards
+└── .env.example            # config template (never commit the real .env)
+```

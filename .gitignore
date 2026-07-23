@@ -34,3 +34,6 @@ backend/src/omnichain/static/
 *.swp
 .idea/
 .vscode/
+
+# PaperBanana diagram working output (scratch)
+outputs/
