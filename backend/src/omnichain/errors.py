@@ -68,6 +68,13 @@ class NotFoundError(OmniChainError):
     error_type = "not_found"
 
 
+class AssemblyError(OmniChainError):
+    """Raised when FFmpeg concat/mux fails."""
+
+    status_code = 502
+    error_type = "assembly_error"
+
+
 def _error_body(error_type: str, message: str, detail: str | None) -> dict[str, object]:
     return {
         "error": {
