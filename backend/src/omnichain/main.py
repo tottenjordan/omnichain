@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 from fastapi import FastAPI
 
 from omnichain import __version__
+from omnichain.api import gcs as gcs_router
 from omnichain.errors import register_exception_handlers
 from omnichain.logging_config import configure_logging, correlation_id_var
 
@@ -67,6 +68,8 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    app.include_router(gcs_router.router)
 
     return app
 
