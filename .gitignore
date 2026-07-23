@@ -1,0 +1,36 @@
+# Secrets / env — NEVER commit
+.env
+.env.*
+!.env.example
+*.key
+*-key.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ty_cache/
+htmlcov/
+.coverage
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Build / assets
+backend/src/omnichain/static/
+*.mp4
+*.mp3
+!docs/**/*.mp4
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
