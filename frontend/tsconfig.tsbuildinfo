@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/ErrorToast.tsx","./src/api.ts","./src/main.tsx","./src/oneChange.ts","./src/types.ts","./src/stages/DailiesStage.tsx","./src/stages/FinalCutStage.tsx","./src/stages/StoryboardStage.tsx","./src/stages/VisionStage.tsx"],"errors":true,"version":"5.9.3"}
