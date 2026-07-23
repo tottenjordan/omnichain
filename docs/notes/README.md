@@ -20,5 +20,5 @@ non-obvious insights you'd otherwise rediscover the hard way.
 
 ## Notes by topic
 
-_(none yet)_
+- [Environment & tooling gotchas](environment.md) — ffmpeg missing, WebSearch blocked, genai auth mode, Python 3.14, ASGI correlation-id middleware
 <!-- Add entries as: - [Title](relative/path.md) — one-line hook -->
