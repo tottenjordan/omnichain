@@ -50,6 +50,20 @@ npm install
 npm run dev     # Vite dev server proxies /api → http://localhost:8000
 ```
 
+## Provision GCP resources
+
+Bootstrap the bucket, Firestore database, and APIs straight from your `.env`
+(idempotent — safe to re-run):
+
+```bash
+./scripts/setup_gcp.sh --dry-run     # preview the gcloud commands
+./scripts/setup_gcp.sh               # create bucket + Firestore + enable APIs
+./scripts/setup_gcp.sh --with-sa     # also create the runtime SA + grant roles
+```
+
+The script reads `PROJECT_ID`, `GCP_REGION`, and `GCS_BUCKET_NAME` (expanding
+`${PROJECT_ID}`) from `.env`. Requires an authenticated `gcloud`.
+
 ## Deployment (Cloud Run)
 
 A single multi-stage [`Dockerfile`](Dockerfile) builds the React SPA, then serves
