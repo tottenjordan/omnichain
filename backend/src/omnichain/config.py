@@ -22,8 +22,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # GCP
-    project_id: str = "hybrid-vertex"
+    # GCP (set via env / .env; empty defaults keep real project ids out of source)
+    project_id: str = ""
     google_cloud_project: str = ""
     google_cloud_project_number: str = ""
     gcp_region: str = "us-central1"

@@ -45,7 +45,7 @@ def test_session_round_trip_with_nested_shots():
     session = Session(
         concept="Snape Dogg trap disstrack",
         style_tone="gritty 90s rap video",
-        gcs_bucket="omnichain-media-hybrid-vertex",
+        gcs_bucket="omnichain-media-example",
         gcs_folder="dripwarts-ep1",
         character_ids=["char-1"],
         shots=[

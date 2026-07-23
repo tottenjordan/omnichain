@@ -9,7 +9,7 @@ Non-obvious facts about the dev/runtime environment for OmniChain, discovered
   the subprocess, so unit tests pass, but **live assembly and the Docker image
   (Task 15) must install ffmpeg**. Verify with `which ffmpeg`.
 - **`WebSearch` is blocked** by an org policy (`constraints/vertexai.allowedPartnerModelFeatures`)
-  on project `hybrid-vertex`. Use the `google-dev-knowledge` MCP tools or `WebFetch`
+  on the dev GCP project. Use the `google-dev-knowledge` MCP tools or `WebFetch`
   for research instead.
 
 ## genai auth mode
