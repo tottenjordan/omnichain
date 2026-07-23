@@ -27,6 +27,65 @@ OmniChain hides Omni Flash's **10-second generation limit** behind a director-st
 3. **The Dailies** — clips generate side-by-side; refine any one with a chat (one change per turn).
 4. **The Final Cut** — FFmpeg concatenates approved clips and muxes the master track.
 
+## Getting started
+
+Spin up the stack locally (full setup lives in [Development](#development) and
+[Provision GCP resources](#provision-gcp-resources)):
+
+```bash
+# backend  → http://localhost:8000
+cd backend && uv sync --all-groups && uv run uvicorn omnichain.main:app --reload
+
+# frontend → http://localhost:5173  (Vite proxies /api → :8000)
+cd frontend && npm install && npm run dev
+```
+
+Open the frontend and walk the four-stage wizard. *(Screenshots below show the
+local UI running against sample data.)*
+
+### 1 · The Vision
+
+Describe the concept and Style/Tone, point OmniChain at a GCS bucket (then browse
+or create a target folder), optionally add a master audio track, and pick
+characters from the global library — the 📎 marks a character that carries a
+reference image for likeness.
+
+[![OmniChain — the Vision stage](imgs/screenshots/01-vision.png)](imgs/screenshots/01-vision.png)
+
+### 2 · The Storyboard
+
+The **Storyboard Agent** slices the vision into 3–6 editable shot cards, each
+capped under 10 seconds and summing to your target length. Tweak any shot's text
+before a single clip is generated.
+
+[![OmniChain — the Storyboard stage](imgs/screenshots/02-storyboard.png)](imgs/screenshots/02-storyboard.png)
+
+### 3 · The Dailies
+
+Clips generate side-by-side. Select a clip to open the **Chat Panel** and refine
+it conversationally — the UI enforces **one change per turn** and chains edits
+server-side via `previous_interaction_id` (no video re-upload). Each clip keeps a
+version history; approve the takes you want.
+
+[![OmniChain — the Dailies stage](imgs/screenshots/03-dailies.png)](imgs/screenshots/03-dailies.png)
+
+### 4 · The Final Cut
+
+Once every shot is approved, **FFmpeg** concatenates them and — if you supplied a
+master track — ducks the clips' native bed underneath it, producing a 30–60s
+video you can preview and download.
+
+[![OmniChain — the Final Cut stage](imgs/screenshots/04-final-cut.png)](imgs/screenshots/04-final-cut.png)
+
+### No silent failures
+
+Every backend error is typed and surfaces as a dismissible toast showing its
+type, human-readable message, provider detail, and a `correlation_id` that ties
+the toast to the server logs. OmniChain **never** silently falls back to Veo — the
+failure is always shown. (More in [the user journey](#the-user-journey).)
+
+[![OmniChain — the global error toast](imgs/screenshots/05-error-toast.png)](imgs/screenshots/05-error-toast.png)
+
 ## Tech stack
 
 Python 3.12 · `uv` · `ruff` · `ty` · `pytest` · FastAPI · React (Vite + TS) · Google ADK · `google-genai` (Interactions API) · GCS · Firestore · FFmpeg · Cloud Run.
@@ -159,10 +218,11 @@ omnichain/
 ├── docs/                   # project documentation
 │   ├── notes/              # build notes (live API shapes, ffmpeg filter graphs)
 │   └── plans/              # implementation plan
-├── imgs/                   # README assets (banner + diagrams)
+├── imgs/                   # README assets
 │   ├── omnichain_banner.png
 │   ├── architecture.png
-│   └── user_journey.png
+│   ├── user_journey.png
+│   └── screenshots/        # four-stage wizard UI captures
 ├── Dockerfile              # multi-stage: build SPA → serve from FastAPI (+ ffmpeg)
 ├── README.md
 ├── CLAUDE.md               # project instructions
