@@ -7,9 +7,7 @@ default path runs a Google ADK ``Agent`` via an in-memory ``Runner``.
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -19,6 +17,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
+from omnichain.agents.parsing import parse_json
 from omnichain.config import get_settings
 from omnichain.errors import AgentError
 from omnichain.models.schemas import Shot
@@ -32,8 +31,6 @@ _MIN_SHOTS = 3
 _MAX_SHOTS = 6
 _MIN_DURATION = 3
 _MAX_DURATION = 10
-
-_FENCE_RE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$")
 
 _SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "storyboard_system.md"
 
@@ -51,10 +48,6 @@ def _user_prompt(concept: str, style_tone: str, target_seconds: int) -> str:
     )
 
 
-def _strip_fences(raw: str) -> str:
-    return _FENCE_RE.sub("", raw).strip()
-
-
 def _clamp_duration(value: object) -> int:
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         msg = f"Shot duration is not a number: {value!r}"
@@ -69,13 +62,7 @@ def _clamp_duration(value: object) -> int:
 
 def parse_shots(raw: str, target_seconds: int) -> list[Shot]:
     """Parse the agent's JSON output into validated, indexed ``Shot`` objects."""
-    text = _strip_fences(raw)
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError as exc:
-        msg = "Storyboard agent returned invalid JSON"
-        raise AgentError(msg, detail=str(exc)) from exc
-
+    data = parse_json(raw, what="Storyboard agent")
     items = data.get("shots") if isinstance(data, dict) else data
     if not isinstance(items, list):
         msg = "Storyboard JSON must be a list of shots or {'shots': [...]}"
