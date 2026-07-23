@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from omnichain import __version__
 from omnichain.api import characters as characters_router
@@ -25,6 +27,10 @@ if TYPE_CHECKING:
     ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 _HEADER = b"x-correlation-id"
+
+# The Docker build copies the built Vite SPA here; absent during local backend
+# dev (where the SPA runs under `vite dev` and proxies to this API).
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 class CorrelationIdMiddleware:
@@ -61,8 +67,12 @@ class CorrelationIdMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
-def create_app() -> FastAPI:
-    """Build and configure the OmniChain FastAPI application."""
+def create_app(static_dir: Path | None = None) -> FastAPI:
+    """Build and configure the OmniChain FastAPI application.
+
+    In production (Cloud Run) the built SPA is served from ``static_dir``; in
+    local dev the directory is absent and the SPA runs under ``vite dev``.
+    """
     configure_logging()
     app = FastAPI(title="OmniChain", version=__version__)
     app.add_middleware(CorrelationIdMiddleware)
@@ -76,6 +86,11 @@ def create_app() -> FastAPI:
     app.include_router(sessions_router.router)
     app.include_router(characters_router.router)
     app.include_router(generation_router.router)
+
+    # Mount the SPA last so /api/* routes take precedence over the catch-all.
+    spa_dir = static_dir if static_dir is not None else _STATIC_DIR
+    if spa_dir.is_dir():
+        app.mount("/", StaticFiles(directory=spa_dir, html=True), name="spa")
 
     return app
 

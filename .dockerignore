@@ -1,0 +1,24 @@
+# Version control / meta
+.git
+.gitignore
+docs
+
+# Secrets — never bake into the image
+.env
+.env.*
+!.env.example
+
+# Python caches / virtualenvs
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/*.pyc
+backend/.venv
+
+# Node — rebuilt inside the image
+frontend/node_modules
+frontend/dist
+**/*.tsbuildinfo
+
+# Backend tests aren't needed at runtime
+backend/tests

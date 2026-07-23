@@ -42,4 +42,51 @@ uv run ruff check . && uv run ty check src/
 uv run uvicorn omnichain.main:app --reload
 ```
 
+### Frontend (local)
+
+```bash
+cd frontend
+npm install
+npm run dev     # Vite dev server proxies /api → http://localhost:8000
+```
+
+## Deployment (Cloud Run)
+
+A single multi-stage [`Dockerfile`](Dockerfile) builds the React SPA, then serves
+it from the FastAPI backend (with `ffmpeg` installed for assembly). The image
+listens on `$PORT` (Cloud Run injects `8080`).
+
+```bash
+# 1. Build + push (Artifact Registry)
+gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/omnichain/omnichain:latest
+
+# 2. Deploy
+gcloud run deploy omnichain \
+  --image REGION-docker.pkg.dev/PROJECT_ID/omnichain/omnichain:latest \
+  --region REGION \
+  --service-account omnichain-sa@PROJECT_ID.iam.gserviceaccount.com \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=PROJECT_ID,GOOGLE_CLOUD_LOCATION=global,GCS_BUCKET_NAME=YOUR_BUCKET \
+  --no-allow-unauthenticated      # guard with IAM/IAP; add end-user auth before opening up
+```
+
+### Required env vars
+
+| Variable | Purpose |
+| --- | --- |
+| `GOOGLE_GENAI_USE_VERTEXAI` | `true` to auth via Vertex AI (ADC); else set `GOOGLE_API_KEY` |
+| `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` | Vertex project + location |
+| `GCS_BUCKET_NAME` | Default assets bucket |
+| `STORYBOARD_MODEL` / `OMNI_MODEL` | Override agent + video models (optional) |
+
+### Service-account roles
+
+The runtime service account needs:
+
+- **Storage Object Admin** (`roles/storage.objectAdmin`) — read/write clips, refs, final cut.
+- **Cloud Datastore User** (`roles/datastore.user`) — Firestore session/character metadata.
+- **Vertex AI User** (`roles/aiplatform.user`) — Gemini + Omni Flash generation.
+
+> Signed URLs require a service account that can sign (the default Cloud Run SA can
+> via the IAM Credentials API — grant `roles/iam.serviceAccountTokenCreator` on itself).
+
 > **Note:** OmniChain never falls back to Veo. All generation errors surface directly in the UI.
